@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
 #include "sha256.h"
 
@@ -199,4 +200,22 @@ void poh_verify_many_simd_avx1(uint8_t* hashes, const uint64_t* num_hashes) {
             sha256_ni_transform(hash);
         }
     }
+}
+
+// Used for getting poh-verify-test working
+__attribute__((visibility("default")))
+void poh_verify_many(uint8_t* hashes, const uint64_t* num_hashes, size_t num_elems, uint8_t _unused) {
+    for (size_t i = 0; i < num_elems; i++)  {
+        uint8_t* hash = hashes + (i * SHA256_BLOCK_SIZE);
+        uint64_t iterations = num_hashes[i];
+        for (uint64_t j = 0; j < iterations; j++) {
+            sha256_ni_transform(hash);
+        }
+    }
+}
+
+__attribute__((visibility("default")))
+void poh_verify_many_set_verbose(bool verbose) {
+    // No-op
+    (void) verbose;
 }
