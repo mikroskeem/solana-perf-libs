@@ -7,7 +7,12 @@
 #include "sha256.h"
 
 // SHA-NI implementation for AMD Zen processors with SHA extensions
-static inline void sha256_ni_transform(uint8_t data[SHA256_BLOCK_SIZE]) {
+#ifdef EXPOSE_SHA256_NI_TRANSFORM
+__attribute__((visibility("default")))
+#else
+static inline
+#endif
+void sha256_ni_transform(uint8_t data[SHA256_BLOCK_SIZE]) {
     __m128i state0, state1;
     __m128i msg, tmp;
     __m128i msg0, msg1, msg2, msg3;
