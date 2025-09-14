@@ -1,9 +1,10 @@
-#include "cl_common.h"
-
+#include <cstdlib>
 #include <string.h>
 #include <stdio.h>
 #include <inttypes.h>
 #include <pthread.h>
+#include <errno.h>
+#include <string.h>
 
 #define USE_CLOCK_GETTIME
 #define ROUND_UP_DIV(x, y) (((x) + (y) - 1) / (y))
@@ -12,6 +13,9 @@
 #include "perftime.h"
 
 bool g_verbose = false;
+
+#define LOG(args...) fprintf (stderr, args)
+#define DIE(cond, msg) do { if (!cond) { fprintf(stderr, "%s: %s\n", msg, strerror(errno)); exit(-1); } } while(0)
 
 typedef struct input_poh_ {
 
