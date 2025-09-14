@@ -4,7 +4,8 @@ DEPS := sha256.h
 CFLAGS = -Wall -Werror
 LDFLAGS = -DNDEBUG -shared -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack
 
-ifeq ($(CC), clang)
+COMPILER_VERSION := $(shell $(CC) --version)
+ifneq ('', $(findstring clang,$(COMPILER_VERSION)))
 	CFLAGS += -Wno-error=ignored-optimization-argument
 endif
 
