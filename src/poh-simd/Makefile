@@ -1,13 +1,18 @@
-CC=ispc
-ISPC_FLAGS := -O2 --pic -I.
+CC = gcc
 DEPS := sha256.h
 
-ISPC_OBJ := ispcobj
-ISPC_C_Objects := $(ISPC_OBJ)/poh-verify-sse2.o \
-    		  $(ISPC_OBJ)/poh-verify-sse4.o \
-		  $(ISPC_OBJ)/poh-verify-avx1.o \
-		  $(ISPC_OBJ)/poh-verify-avx2.o \
-		  $(ISPC_OBJ)/poh-verify-avx512skx.o
+CFLAGS = -Wall -Werror
+LDFLAGS = -DNDEBUG -shared -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack
+
+ifeq ($(CC), clang)
+	CFLAGS += -Wno-error=ignored-optimization-argument
+endif
+
+AMD_ZEN4_FLAGS := $(CFLAGS) -I. -O3 -march=znver4 -mtune=znver4 -msha -mavx2 -fPIC -funroll-loops -fprefetch-loop-arrays -falign-functions=32 -falign-loops=32
+AMD_ZEN4_FLAGS += -mprefer-vector-width=256 -fomit-frame-pointer -flto -ffat-lto-objects
+
+AMD_ZEN4_OBJ = amd-zen4
+AMD_ZEN4_Objects := $(AMD_ZEN4_OBJ)/poh-verify-amd-zen4.o
 
 OUT ?= libs
 
@@ -15,29 +20,20 @@ OUT ?= libs
 all: $(OUT)/libpoh-simd.so
 run: all
 
-$(ISPC_OBJ)/poh-verify-sse2.o: poh-verify.ispc $(DEPS)
-	@mkdir -p $(ISPC_OBJ)
-	$(CC) --target=sse2-i32x4 -DNAME_SUFFIX=sse2 $(ISPC_FLAGS) $< -o $@
+$(AMD_ZEN4_OBJ)/poh-verify-amd-zen4.o: poh-verify-amd-zen4.c $(DEPS)
+	@mkdir -p $(AMD_ZEN4_OBJ)
+	$(CC) $(AMD_ZEN4_FLAGS) -c $< -o $@
 
-$(ISPC_OBJ)/poh-verify-sse4.o: poh-verify.ispc $(DEPS)
-	@mkdir -p $(ISPC_OBJ)
-	$(CC) --target=sse4-i32x4 -DNAME_SUFFIX=sse4 $(ISPC_FLAGS) $< -o $@
-
-$(ISPC_OBJ)/poh-verify-avx1.o: poh-verify.ispc $(DEPS)
-	@mkdir -p $(ISPC_OBJ)
-	$(CC) --target=avx1-i32x8 -DNAME_SUFFIX=avx1 $(ISPC_FLAGS) $< -o $@
-
-$(ISPC_OBJ)/poh-verify-avx2.o: poh-verify.ispc $(DEPS)
-	@mkdir -p $(ISPC_OBJ)
-	$(CC) --target=avx2-i32x8 -DNAME_SUFFIX=avx2 $(ISPC_FLAGS) $< -o $@
-
-$(ISPC_OBJ)/poh-verify-avx512skx.o: poh-verify.ispc $(DEPS)
-	@mkdir -p $(ISPC_OBJ)
-	$(CC) --target=avx512skx-i32x16 -DNAME_SUFFIX=avx512skx $(ISPC_FLAGS) $< -o $@
-
-$(OUT)/libpoh-simd.so: $(ISPC_C_Objects)
+$(OUT)/libpoh-simd.so: $(AMD_ZEN4_Objects)
 	@mkdir -p $(OUT)
-	gcc -shared -o $@ $^
+	$(CC) $(AMD_ZEN4_FLAGS) $(LDFLAGS) -o $@ $^
+
+check-asm: poh-verify-amd-zen4.c
+	$(CC) $(AMD_ZEN4_FLAGS) -S -o - $< | grep -E "sha256" | head -20
+
+test: $(OUT)/libpoh-simd.so
+	$(CC) -O2 -o test_poh test_poh.c -L$(OUT) -Wl,-rpath,$(OUT) -lpoh-simd
+	./test_poh
 
 clean:
-	@rm -rf $(ISPC_OBJ) $(OUT)
+	@rm -rf $(AMD_ZEN4_OBJ) $(OUT) ./test_poh

@@ -27,8 +27,8 @@
 #ifndef SHA256_H
 #define SHA256_H
 
-#define u32 unsigned int32
-#define u8 unsigned int8
+#define u32 uint32_t
+#define u8 uint8_t
 
 #define SHA256_BLOCK_SIZE 32
 
@@ -49,6 +49,11 @@ static const u32 RC[] = {
     0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+};
+
+static const u32 RC_INIT[] = {
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+    0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
 };
 
 #define MAJ(a, b, c) ((a&b) ^ (a&c) ^ (b&c))
